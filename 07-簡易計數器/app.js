@@ -11,15 +11,12 @@ function runtimeSetting() {
     const fs = require("fs");
     const { JSDOM } = jsdom;
     const htmlString = fs.readFileSync("./index.html", "utf-8");
-    console.log(htmlString);
 
     const dom = new JSDOM(htmlString, {
       contentType: "text/html",
       includeNodeLocations: true,
       storageQuota: 10000000,
     });
-
-    console.log(dom.window.document.querySelector("html"));
 
     return dom.window.document;
   }
