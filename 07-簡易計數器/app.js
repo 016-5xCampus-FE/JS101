@@ -1,3 +1,5 @@
+const assert = require("assert");
+
 // 程式碼寫在這裡
 let doc = runtimeSetting();
 
@@ -75,4 +77,49 @@ function main() {
     }
     render();
   });
+
+  testing();
+
+  function testing() {
+    case1();
+    case2();
+    case3();
+  }
+  function case1() {
+    assert(counterEl.value == 1, "初始值應該是 1");
+
+    for (let i = 0; i < 10; i++) {
+      plusBtn.click();
+    }
+
+    assert(counterEl.value == 11, "點擊增加 10 次後 counter 應該是 11");
+    console.assert(counterEl.value == 11, "點擊增加 10 次後 counter 應該是 11");
+
+    resetCounter();
+  }
+  function case2() {
+    counterEl.value = 15;
+    assert(counterEl.value == 15, "初始值應該是 15");
+
+    for (let i = 0; i < 5; i++) {
+      minusBtn.click();
+    }
+
+    assert(counterEl.value == 10, "點擊減少 5 次後 counter 應該是 10");
+    resetCounter();
+  }
+  function case3() {
+    counterEl.value = 15;
+    assert(counterEl.value == 15, "初始值應該是 15");
+
+    for (let i = 0; i < 55; i++) {
+      minusBtn.click();
+    }
+
+    assert(counterEl.value == 1, "點擊減少 55 次後 counter 應該是 1");
+    resetCounter();
+  }
+  function resetCounter() {
+    counterEl.value = 1;
+  }
 }
