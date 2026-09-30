@@ -1,45 +1,40 @@
 // 程式碼寫在這裡
 // 提示：BMI = 體重(kg) / 身高(m) 平方
-const doc = runtimeSetting();
-const isNodeRuntime = typeof window === "undefined";
+function createDocumentForNode() {
+  const jsdom = require("jsdom");
+  const fs = require("fs");
+  const path = require("path");
+  const { JSDOM } = jsdom;
+  const htmlPath = path.join(__dirname, "index.html");
+  const htmlString = fs.readFileSync(htmlPath, "utf-8");
 
-main();
+  const dom = new JSDOM(htmlString, {
+    contentType: "text/html",
+    includeNodeLocations: true,
+    storageQuota: 10000000,
+  });
 
-function runtimeSetting() {
-  if (typeof document != "undefined") {
-    return document;
-  } else {
-    const jsdom = require("jsdom");
-    const fs = require("fs");
-    const { JSDOM } = jsdom;
-    const htmlString = fs.readFileSync("./index.html", "utf-8");
-
-    const dom = new JSDOM(htmlString, {
-      contentType: "text/html",
-      includeNodeLocations: true,
-      storageQuota: 10000000,
-    });
-
-    return dom.window.document;
-  }
+  return dom.window.document;
 }
 
-function main() {
+function createBMIApp(doc) {
   const heightEl = doc.querySelector("#bodyHeight");
   const weightEl = doc.querySelector("#bodyWeight");
   const calcBtn = doc.querySelector(".fields>button");
   const resultEl = doc.querySelector("#resultText");
 
-  calcBtn.addEventListener("click", () => {
+  function calculate() {
     const bH = heightEl.value;
     const bW = weightEl.value;
     if (!isAllValueValid([bH, bW])) {
-      const errorMsg = getErrorReason([heightEl, weightEl]);
+      const errorMsg = getErrorReason([heightEl, weightEl], doc);
       console.warn("輸入值錯誤: " + errorMsg);
       return;
     }
-    resultEl.textContent = roundAfterByDigit(calcBMI(bW, bH), 2);
-  });
+    resultEl.textContent = String(roundAfterByDigit(calcBMI(bW, bH), 2));
+  }
+
+  calcBtn.addEventListener("click", calculate);
 
   function reset() {
     heightEl.value = "";
@@ -47,68 +42,13 @@ function main() {
     resultEl.textContent = "0";
   }
 
-  function testing() {
-    let failCount = 0;
-
-    function assertWithReset(message, assertFn) {
-      reset();
-      const result = assertFn();
-      console.assert(result, message);
-      if (!result) {
-        failCount += 1;
-      }
-    }
-
-    assertWithReset("一般使用情境: 身高 170、體重 65 應計算為 22.49", () => {
-      heightEl.value = "170";
-      weightEl.value = "65";
-      calcBtn.click();
-      return resultEl.textContent === "22.49";
-    });
-
-    assertWithReset("邊緣案例: 身高未填不應更新結果", () => {
-      weightEl.value = "65";
-      calcBtn.click();
-      return resultEl.textContent === "0";
-    });
-
-    assertWithReset("邊緣案例: 體重未填不應更新結果", () => {
-      heightEl.value = "170";
-      calcBtn.click();
-      return resultEl.textContent === "0";
-    });
-
-    assertWithReset("邊緣案例: 身高為 0 不應更新結果", () => {
-      heightEl.value = "0";
-      weightEl.value = "65";
-      calcBtn.click();
-      return resultEl.textContent === "0";
-    });
-
-    assertWithReset("邊緣案例: 體重為負數不應更新結果", () => {
-      heightEl.value = "170";
-      weightEl.value = "-10";
-      calcBtn.click();
-      return resultEl.textContent === "0";
-    });
-
-    assertWithReset("邊緣案例: 非數字輸入不應更新結果", () => {
-      heightEl.value = "abc";
-      weightEl.value = "65";
-      calcBtn.click();
-      return resultEl.textContent === "0";
-    });
-
-    if (failCount === 0) {
-      console.log("BMI 測試完成：全部通過");
-    } else {
-      console.warn(`BMI 測試完成：失敗 ${failCount} 項`);
-    }
-  }
-
-  if (isNodeRuntime) {
-    testing();
-  }
+  return {
+    heightEl,
+    weightEl,
+    calcBtn,
+    resultEl,
+    reset,
+  };
 }
 
 function isAllValueValid(valAry = []) {
@@ -133,7 +73,7 @@ function roundAfterByDigit(val, digit = 2) {
   return Math.round(val * tempUnitDigit) / tempUnitDigit;
 }
 
-function getErrorReason(elAry = []) {
+function getErrorReason(elAry = [], doc) {
   const reasons = elAry.reduce((msgAry, el) => {
     const elLabel = doc.querySelector(`label[for="${el.id}"]`);
     const valNum = Number(el.value);
@@ -153,4 +93,19 @@ function getErrorReason(elAry = []) {
   }, []);
 
   return reasons.join(", ");
+}
+
+if (typeof document !== "undefined") {
+  createBMIApp(document);
+}
+
+if (typeof module !== "undefined") {
+  module.exports = {
+    createBMIApp,
+    createDocumentForNode,
+    isAllValueValid,
+    calcBMI,
+    roundAfterByDigit,
+    getErrorReason,
+  };
 }
