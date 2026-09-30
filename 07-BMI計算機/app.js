@@ -1,6 +1,7 @@
 // 程式碼寫在這裡
 // 提示：BMI = 體重(kg) / 身高(m) 平方
 const doc = runtimeSetting();
+const isNodeRuntime = typeof window === "undefined";
 
 main();
 
@@ -45,12 +46,75 @@ function main() {
     weightEl.value = "";
     resultEl.textContent = "0";
   }
+
+  function testing() {
+    let failCount = 0;
+
+    function assertWithReset(message, assertFn) {
+      reset();
+      const result = assertFn();
+      console.assert(result, message);
+      if (!result) {
+        failCount += 1;
+      }
+    }
+
+    assertWithReset("一般使用情境: 身高 170、體重 65 應計算為 22.49", () => {
+      heightEl.value = "170";
+      weightEl.value = "65";
+      calcBtn.click();
+      return resultEl.textContent === "22.49";
+    });
+
+    assertWithReset("邊緣案例: 身高未填不應更新結果", () => {
+      weightEl.value = "65";
+      calcBtn.click();
+      return resultEl.textContent === "0";
+    });
+
+    assertWithReset("邊緣案例: 體重未填不應更新結果", () => {
+      heightEl.value = "170";
+      calcBtn.click();
+      return resultEl.textContent === "0";
+    });
+
+    assertWithReset("邊緣案例: 身高為 0 不應更新結果", () => {
+      heightEl.value = "0";
+      weightEl.value = "65";
+      calcBtn.click();
+      return resultEl.textContent === "0";
+    });
+
+    assertWithReset("邊緣案例: 體重為負數不應更新結果", () => {
+      heightEl.value = "170";
+      weightEl.value = "-10";
+      calcBtn.click();
+      return resultEl.textContent === "0";
+    });
+
+    assertWithReset("邊緣案例: 非數字輸入不應更新結果", () => {
+      heightEl.value = "abc";
+      weightEl.value = "65";
+      calcBtn.click();
+      return resultEl.textContent === "0";
+    });
+
+    if (failCount === 0) {
+      console.log("BMI 測試完成：全部通過");
+    } else {
+      console.warn(`BMI 測試完成：失敗 ${failCount} 項`);
+    }
+  }
+
+  if (isNodeRuntime) {
+    testing();
+  }
 }
 
 function isAllValueValid(valAry = []) {
   return valAry.every((val) => {
     const num = Number(val);
-    if (num <= 0) {
+    if (!Number.isFinite(num) || num <= 0) {
       return false;
     }
 
@@ -70,15 +134,23 @@ function roundAfterByDigit(val, digit = 2) {
 }
 
 function getErrorReason(elAry = []) {
-  return elAry.reduce((msg, el, i) => {
-    const breakStr = i != 0 ? ", " : "";
+  const reasons = elAry.reduce((msgAry, el) => {
     const elLabel = doc.querySelector(`label[for="${el.id}"]`);
+    const valNum = Number(el.value);
     if (el.value == "") {
-      return msg + breakStr + elLabel.textContent + "沒有填";
+      msgAry.push(elLabel.textContent + "沒有填");
+      return msgAry;
     }
-    if (el.value <= 0) {
-      return msg + breakStr + elLabel.textContent + "不能小於等於 0";
+    if (!Number.isFinite(valNum)) {
+      msgAry.push(elLabel.textContent + "不是有效數值");
+      return msgAry;
     }
-    return msg;
-  }, "");
+    if (valNum <= 0) {
+      msgAry.push(elLabel.textContent + "不能小於等於 0");
+      return msgAry;
+    }
+    return msgAry;
+  }, []);
+
+  return reasons.join(", ");
 }
